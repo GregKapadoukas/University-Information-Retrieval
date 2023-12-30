@@ -1,8 +1,7 @@
 import math
 
-from numpy import who
-
 from InvertedIndex import InvertedIndex
+from numpy import who
 
 
 class QueryPreprocessInfo:
@@ -208,7 +207,7 @@ class VectorSpace:
             document_similarities.items(), key=lambda item: item[1], reverse=True
         )
         sorted_similarities = sorted_similarities[:num_responses]
-        sorted_similarities = [i[0] for i in sorted_similarities]
+        sorted_similarities = [i[0].strip("0") for i in sorted_similarities]
         return sorted_similarities
 
     def __str__(self):

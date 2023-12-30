@@ -19,10 +19,9 @@
 import os
 
 import nltk
-from nltk.stem import PorterStemmer
-
 from InvertedIndex import InvertedIndex  # Custom library
 from ModelResults import ModelResults
+from nltk.stem import PorterStemmer
 from VectorSpace import VectorSpace
 
 docs_path = "../Dataset/docs/"
@@ -151,8 +150,7 @@ with open("../Dataset/Queries_20") as queries:
     )
 
 # %%
-vectorSpaceResults = [vectorSpace.lookup(str(i), 10) for i in range(20)]
-print(vectorSpaceResults)
+vectorSpaceResults = [vectorSpace.lookup(str(i), 20) for i in range(20)]
 
 # %%
 import csv
@@ -241,6 +239,7 @@ with open("../Dataset/TSVs/collection.tsv", "w", newline="") as collectiontsv:
         collectiontsv.write("\n")
 
 # Correct missing query (Queries_20 has only 19 out of queries)
+"""
 with open("../Dataset/Queries_20", "r") as queries:
     line_count = len(queries.readlines())
     if line_count < 20:
@@ -250,6 +249,7 @@ with open("../Dataset/Queries_20", "r") as queries:
         )
         write_missing_query.close()
     queries.close()
+"""
 
 with open("../Dataset/TSVs/queries.tsv", "w", newline="") as queriestsv:
     i = 1
@@ -305,8 +305,6 @@ sys.path.insert(0, "../Code/")
 
 # %%
 nbits = 8
-
-# %%
 with Run().context(
     RunConfig(nranks=1, experiment="../../ColBERT/experiments/cystic_fibrosis")
 ):
@@ -333,50 +331,86 @@ with Run().context(
     )
     searcher = Searcher(index="cystic_fibrosis.nbits=" + str(nbits), config=config)
     queries = Queries("../Dataset/TSVs/queries.tsv")
-    ranking = searcher.search_all(queries, k=10)
+    ranking = searcher.search_all(queries, k=20)
     ranking.save("cystic_fibrosis.nbits=" + str(nbits) + ".ranking.tsv")
-
-# %% [markdown]
-# Print and evaluate results
-
-# %%
-import collections
 
 colbertResults = []
 i = 0
 for query in ranking.data:
     colbertResults.append([])
     for answer in ranking.data[query]:
-        colbertResults[i].append(int(inverted_cid_dictionary[answer[0]]))
+        colbertResults[i].append(inverted_cid_dictionary[answer[0]].strip("0"))
     i += 1
 
-# %%
-print(colbertResults)
+# %% [markdown]
+# Calculate the correct answers from the dataset
 
 # %%
-realAnswers = []
-with open("../Dataset/Relevant_20", "r") as queries:
-    i = 0
-    for query in queries:
-        j = 0
-        answers = query.split()
-        realAnswers.append([])
-        for answer in answers:
-            realAnswers[i].append(int(answer))
-        i += 1
-queries.close()
+correctAnswers = []
+
+
+def processRelevant(relevant_string):
+    relevant_string = relevant_string.split()
+    relevant = {}
+    flag = False
+    for text in relevant_string:
+        if not flag:
+            doc_id = text
+            flag = True
+        else:
+            score = 0
+            for digit in text:
+                score += int(digit)
+            relevant[doc_id] = score  # type: ignore
+            flag = False
+    relevant = dict(sorted(relevant.items(), key=lambda item: item[1], reverse=True))
+    return relevant
+
+
+with open("../Dataset/cfquery_detailed", "r") as relevant:
+    relevant_per_query = ""
+    flag = False
+    for line in relevant:
+        if flag is False and line[0:2] == "RD":
+            flag = True
+            relevant_per_query += line[3:]
+        elif flag is True and line[0:2] == "QN":
+            flag = False
+            correctAnswers.append(processRelevant(relevant_per_query))
+            relevant_per_query = ""
+        elif flag is True:
+            relevant_per_query += line
+
+# %% [markdown]
+# Create ModelResults objects to compute metrics and gain ability to view and plot them
 
 # %%
-vectorSpaceResults = ModelResults(vectorSpaceResults, realAnswers, "Vector Space")
-colbertResults = ModelResults(colbertResults, realAnswers, "Vector Space")
+vectorSpaceResults = ModelResults(vectorSpaceResults, correctAnswers, "Vector Space")
+colbertResults = ModelResults(colbertResults, correctAnswers, "ColBERT")
+
+# %% [markdown]
+# Printing average precision, recall and DCG metrics
 
 # %%
-print(f"Vector Space Query 1 Precision: {vectorSpaceResults.getPrecision(0)}")
-print(f"ColBERT Query 1 Precision: {colbertResults.getPrecision(0)}")
+print(f"Vector Space Mean Precision: {vectorSpaceResults.getMeanPrecision()}")
+print(f"ColBERT Mean Precision: {colbertResults.getMeanPrecision()}")
 
 # %%
-print(f"Vector Space Query 1 Recall: {vectorSpaceResults.getRecall(0)}")
-print(f"ColBERT Query 1 Recall: {colbertResults.getRecall(0)}")
+print(f"Vector Space Mean Recall: {vectorSpaceResults.getMeanRecall()}")
+print(f"ColBERT Mean Recall: {colbertResults.getMeanRecall()}")
 
 # %%
-vectorSpaceResults.compare_precision_recall_curve(colbertResults, 0)
+print(f"Vector Space Mean DCG: {vectorSpaceResults.getMeanDCG()}")
+print(f"ColBERT Mean DCG: {colbertResults.getMeanDCG()}")
+
+# %% [markdown]
+# Displaying comparison precision recall curve
+
+# %%
+vectorSpaceResults.compare_mean_precision_recall_curve(colbertResults)
+
+# %% [markdown]
+# Displaying comparison DCG curve
+
+# %%
+vectorSpaceResults.compare_mean_dcg_curve(colbertResults)
