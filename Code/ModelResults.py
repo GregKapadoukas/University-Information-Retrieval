@@ -21,12 +21,12 @@ class ModelResults:
             query_precision = []
             for i in range(len(result)):
                 # For all previous documents in response, to get incremental precision
-                number_incorrect_documents_found = 0
+                number_correct_documents_found = 0
                 for j in range(i + 1):
-                    if result[j] not in correct_answer.keys():
-                        number_incorrect_documents_found += 1
+                    if result[j] in correct_answer.keys():
+                        number_correct_documents_found += 1
                 query_precision.append(
-                    1 - (number_incorrect_documents_found / len(result))
+                    number_correct_documents_found / (len(query_precision) + 1)
                 )
             precision.append(query_precision)
         return precision

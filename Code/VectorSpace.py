@@ -130,12 +130,6 @@ class VectorSpace:
         return 1
 
     def idf_logsimple(self, token):
-        if token == "black":
-            """
-            print(
-                f"Black:\n n: {self.invertedIndex.getTotalNumberOfDocuments()}\n idf: {self.invertedIndex.getIDF(token)}\n weighted: {math.log(self.invertedIndex.getTotalNumberOfDocuments() / self.invertedIndex.getIDF(token))}"
-            )
-            """
         return math.log(
             self.invertedIndex.getTotalNumberOfDocuments()
             / self.invertedIndex.getIDF(token)
@@ -195,7 +189,9 @@ class VectorSpace:
             c = math.sqrt(sum(wiq**2 for wiq in self.queries[query]))
             return a / (b * c)
         else:
-            print("Invalid document or query")
+            print(
+                f"Document {document} in self.documents.keys() = {document in self.documents.keys()} and Query {query} in self.queries.keys() = {query in self.queries.keys()}"
+            )
             return -1
 
     def lookup(self, query, num_responses):

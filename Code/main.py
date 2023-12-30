@@ -85,7 +85,7 @@ tokenFrequencies = plotFrequencyDistribution()
 # %% [markdown]
 # As you can see, very few tokens are very frequent and the rest is very infrequent.
 #
-# Thus I decided to remove very frequet tokens, that appear on mostly every document, since I don't want the information retrieval system to focus on those when computing answers to queries.
+# Thus I decided to remove very frequent tokens, that appear on mostly every document, since I don't want the information retrieval system to focus on those when computing answers to queries.
 #
 # I also replaced infrequent tokens with synonyms, hoping that the synonyms would have a higher frequency in the docs, so that by doing the same replacements in the query tokens the answers of the infrequent tokens will be grouped with their synonyms.
 #
@@ -133,7 +133,7 @@ tokenFrequencies = plotFrequencyDistribution()
 
 # %%
 with open("../Dataset/Queries_20") as queries:
-    vectorSpace = VectorSpace(
+    vectorSpace1 = VectorSpace(
         documents=docs_list,
         queries=queries,
         invertedIndex=invertedIndex,
@@ -149,8 +149,26 @@ with open("../Dataset/Queries_20") as queries:
         query_stemmer=ps,
     )
 
+with open("../Dataset/Queries_20") as queries:
+    vectorSpace2 = VectorSpace(
+        documents=docs_list,
+        queries=queries,
+        invertedIndex=invertedIndex,
+        document_tf_weighting=VectorSpace.tf_simplefrequency,
+        document_idf_weighting=VectorSpace.idf_one,
+        document_normalize_function=VectorSpace.cosine_normalization,
+        query_tf_weighting=VectorSpace.tf_doublehalfnormalization,
+        query_idf_weighting=VectorSpace.idf_logsimple,
+        query_normalize_function=VectorSpace.no_normalization,
+        query_stopwords=stopwords,
+        query_removed_frequent_words=removed_frequent_words,
+        query_replaced_words=replaced_words,
+        query_stemmer=ps,
+    )
+
 # %%
-vectorSpaceResults = [vectorSpace.lookup(str(i), 20) for i in range(20)]
+vectorSpace1Results = [vectorSpace1.lookup(str(i), 40) for i in range(20)]
+vectorSpace2Results = [vectorSpace2.lookup(str(i), 40) for i in range(20)]
 
 # %%
 import csv
@@ -331,7 +349,7 @@ with Run().context(
     )
     searcher = Searcher(index="cystic_fibrosis.nbits=" + str(nbits), config=config)
     queries = Queries("../Dataset/TSVs/queries.tsv")
-    ranking = searcher.search_all(queries, k=20)
+    ranking = searcher.search_all(queries, k=40)
     ranking.save("cystic_fibrosis.nbits=" + str(nbits) + ".ranking.tsv")
 
 colbertResults = []
@@ -385,32 +403,49 @@ with open("../Dataset/cfquery_detailed", "r") as relevant:
 # Create ModelResults objects to compute metrics and gain ability to view and plot them
 
 # %%
-vectorSpaceResults = ModelResults(vectorSpaceResults, correctAnswers, "Vector Space")
+vectorSpace1Results = ModelResults(
+    vectorSpace1Results, correctAnswers, "Vector Space 1"
+)
+vectorSpace2Results = ModelResults(
+    vectorSpace2Results, correctAnswers, "Vector Space 2"
+)
 colbertResults = ModelResults(colbertResults, correctAnswers, "ColBERT")
 
 # %% [markdown]
 # Printing average precision, recall and DCG metrics
 
 # %%
-print(f"Vector Space Mean Precision: {vectorSpaceResults.getMeanPrecision()}")
+print(f"Vector Space 1 Mean Precision: {vectorSpace1Results.getMeanPrecision()}")
+print(f"Vector Space 2 Mean Precision: {vectorSpace2Results.getMeanPrecision()}")
 print(f"ColBERT Mean Precision: {colbertResults.getMeanPrecision()}")
 
 # %%
-print(f"Vector Space Mean Recall: {vectorSpaceResults.getMeanRecall()}")
+print(f"Vector Space 1 Mean Recall: {vectorSpace1Results.getMeanRecall()}")
+print(f"Vector Space 2 Mean Recall: {vectorSpace2Results.getMeanRecall()}")
 print(f"ColBERT Mean Recall: {colbertResults.getMeanRecall()}")
 
 # %%
-print(f"Vector Space Mean DCG: {vectorSpaceResults.getMeanDCG()}")
+print(f"Vector Space 1 Mean DCG: {vectorSpace1Results.getMeanDCG()}")
+print(f"Vector Space 2 Mean DCG: {vectorSpace2Results.getMeanDCG()}")
 print(f"ColBERT Mean DCG: {colbertResults.getMeanDCG()}")
 
 # %% [markdown]
 # Displaying comparison precision recall curve
 
 # %%
-vectorSpaceResults.compare_mean_precision_recall_curve(colbertResults)
+vectorSpace1Results.compare_mean_precision_recall_curve(colbertResults)
 
 # %% [markdown]
 # Displaying comparison DCG curve
 
 # %%
-vectorSpaceResults.compare_mean_dcg_curve(colbertResults)
+vectorSpace1Results.compare_mean_dcg_curve(colbertResults)
+
+# %%
+vectorSpace1Results.compare_mean_precision_recall_curve(vectorSpace2Results)
+
+# %% [markdown]
+# Displaying comparison DCG curve
+
+# %%
+vectorSpace1Results.compare_mean_dcg_curve(vectorSpace2Results)
