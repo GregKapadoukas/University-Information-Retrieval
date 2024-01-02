@@ -166,7 +166,8 @@ class VectorSpace:
     def preprocessQuery(self, query):
         query = query.lower()
         query = query.split()
-        for word in query:
+        temp_query = query
+        for word in temp_query:
             if word in self.query_preprocess_info.stopwords:
                 query.remove(word)
                 continue

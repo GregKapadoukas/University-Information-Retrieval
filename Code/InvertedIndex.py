@@ -1,7 +1,11 @@
+from numpy import invert
+
+
 class InvertedIndex:
     def __init__(self):
         self.__content = {}
         self.__number_of_documents = 0
+        self.__max_idf = 0
 
     def insert(self, token, doc):
         if token in self.__content:
@@ -9,6 +13,8 @@ class InvertedIndex:
         else:
             self.__content[token] = [1, {doc: 1}]
             self.__number_of_documents += 1
+            if self.__content[token][0] > self.__max_idf:
+                self.__max_idf = self.__content[token][0]
 
     def countOccurances(self, token):
         count = 0
@@ -63,7 +69,7 @@ class InvertedIndex:
         return self.__number_of_documents
 
     def getMaxIDF(self):
-        return max(entry for entry, _ in self.__content)
+        return self.__max_idf
 
     def __addOccurance(self, inverted_list, doc):
         if doc in inverted_list[1]:
@@ -71,6 +77,8 @@ class InvertedIndex:
         else:
             inverted_list[1][doc] = 1
             inverted_list[0] += 1
+            if inverted_list[0] > self.__max_idf:
+                self.__max_idf = inverted_list[0]
 
     def __str__(self):
         result = ""

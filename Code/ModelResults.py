@@ -25,9 +25,7 @@ class ModelResults:
                 for j in range(i + 1):
                     if result[j] in correct_answer.keys():
                         number_correct_documents_found += 1
-                query_precision.append(
-                    number_correct_documents_found / (len(query_precision) + 1)
-                )
+                query_precision.append(number_correct_documents_found / (i + 1))
             precision.append(query_precision)
         return precision
 
@@ -65,10 +63,10 @@ class ModelResults:
                 else:
                     if result[i] in correct_answer.keys():
                         query_dcg.append(
-                            query_dcg[-1] / math.log2(i + 1) + correct_answer[result[i]]
+                            correct_answer[result[i]] / math.log2(i + 1) + query_dcg[-1]
                         )
                     else:
-                        query_dcg.append(query_dcg[-1] / math.log2(i + 1))
+                        query_dcg.append(query_dcg[-1])
             dcg.append(query_dcg)
         return dcg
 
