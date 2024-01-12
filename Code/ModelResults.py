@@ -151,8 +151,8 @@ class ModelResults:
             other_model_results.getPrecision(query_num),
             label=other_model_results.model,
         )
-        plt.xlabel("Mean Recall")
-        plt.ylabel("Mean Precision")
+        plt.xlabel("Recall")
+        plt.ylabel("Precision")
         plt.title(
             f"Precision Recall Curve Comparisson for Model {self.model} and {other_model_results.model} for query {query_num}"
         )
@@ -162,7 +162,7 @@ class ModelResults:
     def compare_dcg_curve(self, other_model_results, query_num):
         plt.plot(self.getDCG(query_num), label=self.model)
         plt.plot(other_model_results.getDCG(query_num), label=other_model_results.model)
-        plt.xlabel("Document Number")
+        plt.xlabel("Number Documents Retrieved")
         plt.ylabel("DCG")
         plt.title(
             f"DCG Curve Comparisson for Model {self.model} and {other_model_results.model} for query {query_num}"
@@ -180,7 +180,7 @@ class ModelResults:
         plt.xlabel("Mean Recall")
         plt.ylabel("Mean Precision")
         plt.title(
-            f"Precision Recall Curve Comparisson for Model {self.model} and {other_model_results.model}"
+            f"Mean Precision Recall Curve Comparisson for Model {self.model} and {other_model_results.model}"
         )
         plt.legend()
         plt.show()
@@ -188,10 +188,10 @@ class ModelResults:
     def compare_mean_dcg_curve(self, other_model_results):
         plt.plot(self.getMeanDCG(), label=self.model)
         plt.plot(other_model_results.getMeanDCG(), label=other_model_results.model)
-        plt.xlabel("Document Number")
-        plt.ylabel("DCG")
+        plt.xlabel("Number Documents Retrieved")
+        plt.ylabel("Mean DCG")
         plt.title(
-            f"DCG Curve Comparisson for Model {self.model} and {other_model_results.model}"
+            f"Mean DCG Curve Comparisson for Model {self.model} and {other_model_results.model}"
         )
         plt.legend()
         plt.show()
