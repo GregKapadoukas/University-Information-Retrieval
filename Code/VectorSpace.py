@@ -1,7 +1,6 @@
 import math
 
 from InvertedIndex import InvertedIndex
-from numpy import who
 
 
 class QueryPreprocessInfo:
@@ -166,18 +165,27 @@ class VectorSpace:
     def preprocessQuery(self, query):
         query = query.lower()
         query = query.split()
-        temp_query = query
-        for word in temp_query:
-            if word in self.query_preprocess_info.stopwords:
-                query.remove(word)
+        result_query = []
+        for i in range(len(query)):
+            # Word is stopword
+            if query[i] in self.query_preprocess_info.stopwords:
                 continue
-            original_word = word
-            word = self.query_preprocess_info.stemmer.stem(word.lower())
-            if word in self.query_preprocess_info.replaced_words.keys():
-                word = self.query_preprocess_info.replaced_words[word]
-            # Check if frequent word
-            if word in self.query_preprocess_info.removed_frequent_words:
-                query.remove(original_word)
+            # Stem word
+            stemmed_word = self.query_preprocess_info.stemmer.stem(query[i].lower())
+            if stemmed_word in self.query_preprocess_info.replaced_words.keys():
+                # Check if word is infrequent replaced
+                replaced_word = self.query_preprocess_info.replaced_words[query[i]]
+                # Check if replaced word is one of frequent removed
+                if (
+                    replaced_word
+                    not in self.query_preprocess_info.removed_frequent_words
+                ):
+                    result_query.append(replaced_word)
+            # Check if stemmed word is one of removed frequent words
+            if stemmed_word not in self.query_preprocess_info.removed_frequent_words:
+                result_query.append(stemmed_word)
+        query = result_query
+        print(query)
         return query
 
     def cosineSimilarity(self, document, query):
