@@ -58,8 +58,18 @@ class VectorSpace:
 
     def addDocuments(self, documents):
         for doc in documents:
+            if (
+                self.document_tf_weighting == self.tf_doublehalfnormalization
+                or self.document_tf_weighting == self.tf_doubleknormalization
+            ):
+                max_tf = max(
+                    self.tf_simplefrequency(token, doc, "document", 0)
+                    for token, _ in self.invertedIndex.getTokens()
+                )
+            else:
+                max_tf = 0
             w = [
-                self.compute_weights(token, doc, "document")
+                self.compute_weights(token, doc, "document", max_tf)
                 for token, _ in self.invertedIndex.getTokens()
             ]
             self.documents[doc] = w
@@ -69,21 +79,31 @@ class VectorSpace:
         query_id = 0
         for query in queries:
             query = self.preprocessQuery(query)
+            if (
+                self.query_tf_weighting == self.tf_doublehalfnormalization
+                or self.query_tf_weighting == self.tf_doubleknormalization
+            ):
+                max_tf = max(
+                    self.tf_simplefrequency(token, query, "query", 0)
+                    for token, _ in self.invertedIndex.getTokens()
+                )
+            else:
+                max_tf = 0
             w = [
-                self.compute_weights(token, query, "query")
+                self.compute_weights(token, query, "query", max_tf)
                 for token, _ in self.invertedIndex.getTokens()
             ]
             self.queries[str(query_id)] = w
             query_id += 1
         self.queries = self.query_normalize_function(self.queries)
 
-    def compute_weights(self, token, doc, add_type):
+    def compute_weights(self, token, doc, add_type, max_tf):
         if add_type == "document":
-            tf = self.document_tf_weighting(token, doc, add_type)
+            tf = self.document_tf_weighting(token, doc, add_type, max_tf)
             idf = self.document_idf_weighting(token)
             return tf * idf
         elif add_type == "query":
-            tf = self.query_tf_weighting(token, doc, add_type)
+            tf = self.query_tf_weighting(token, doc, add_type, max_tf)
             idf = self.query_idf_weighting(token)
             return tf * idf
         else:
@@ -103,27 +123,23 @@ class VectorSpace:
                 count += 1
         return count
 
-    def tf_binary(self, token, doc, add_type):
+    def tf_binary(self, token, doc, add_type, max_tf):
         if self.getFrequency(token, doc, add_type) == 0:
             return 0
         else:
             return 1
 
-    def tf_simplefrequency(self, token, doc, add_type):
+    def tf_simplefrequency(self, token, doc, add_type, max_tf):
         return self.getFrequency(token, doc, add_type)
 
-    def tf_logfrequency(self, token, doc, add_type):
+    def tf_logfrequency(self, token, doc, add_type, max_tf):
         return 1 + math.log(self.getFrequency(token, doc, add_type))
 
-    def tf_doublehalfnormalization(self, token, doc, add_type):
-        return 0.5 + 0.5 * (
-            self.getFrequency(token, doc, add_type) / self.invertedIndex.getMaxTF(token)
-        )
+    def tf_doublehalfnormalization(self, token, doc, add_type, max_tf):
+        return 0.5 + 0.5 * (self.getFrequency(token, doc, add_type) / max_tf)
 
-    def tf_doubleknormalization(self, token, doc, K, add_type):
-        return K + (1 - K) * (
-            self.getFrequency(token, doc, add_type) / self.invertedIndex.getMaxTF(token)
-        )
+    def tf_doubleknormalization(self, token, doc, K, add_type, max_tf):
+        return K + (1 - K) * (self.getFrequency(token, doc, add_type) / max_tf)
 
     def idf_one(self, token):
         return 1
@@ -185,7 +201,6 @@ class VectorSpace:
             if stemmed_word not in self.query_preprocess_info.removed_frequent_words:
                 result_query.append(stemmed_word)
         query = result_query
-        print(query)
         return query
 
     def cosineSimilarity(self, document, query):
@@ -212,7 +227,7 @@ class VectorSpace:
             document_similarities.items(), key=lambda item: item[1], reverse=True
         )
         sorted_similarities = sorted_similarities[:num_responses]
-        sorted_similarities = [i[0].strip("0") for i in sorted_similarities]
+        sorted_similarities = [i[0].lstrip("0") for i in sorted_similarities]
         return sorted_similarities
 
     def __str__(self):

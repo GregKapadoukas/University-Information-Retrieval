@@ -1,6 +1,3 @@
-from numpy import invert
-
-
 class InvertedIndex:
     def __init__(self):
         self.__content = {}
